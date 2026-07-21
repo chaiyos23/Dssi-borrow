@@ -1,16 +1,39 @@
-# React + Vite
+# DSSI Equipment Borrowing System (ระบบยืม-คืนอุปกรณ์วิทยบริการ คณะวิทยาศาสตร์)
 
-This template provides a minimal setup to get React working in Vite with HMR and some ESLint rules.
+ระบบยืม-คืนอุปกรณ์ คณะวิทยาศาสตร์ มหาวิทยาลัยอุบลราชธานี (UBU) สำหรับจัดการอุปกรณ์คอมพิวเตอร์และสื่อดิจิทัล เชื่อมโยง 3-Tier สถาปัตยกรรม (React + FastAPI + PostgreSQL)
 
-Currently, two official plugins are available:
+---
 
-- [@vitejs/plugin-react](https://github.com/vitejs/vite-plugin-react/blob/main/packages/plugin-react) uses [Oxc](https://oxc.rs)
-- [@vitejs/plugin-react-swc](https://github.com/vitejs/vite-plugin-react/blob/main/packages/plugin-react-swc) uses [SWC](https://swc.rs/)
+## 🚀 วิธีการรันระบบ (How to Run)
 
-## React Compiler
+### 1. 🌐 วิธีรันระบบหน้าบ้าน (Frontend - React)
+เปิดหน้าต่าง Terminal หรือ Command Prompt ตัวที่ 1:
+```bash
+# 1. ย้ายเข้าไปที่โฟลเดอร์โครงการหลัก
+cd c:\year3-2569\sofwaredev\project
 
-The React Compiler is not enabled on this template because of its impact on dev & build performances. To add it, see [this documentation](https://react.dev/learn/react-compiler/installation).
+# 2. รันหน้าเว็บ
+npm run dev
+```
+* หน้าเว็บจะเข้าใช้งานได้ผ่านเบราว์เซอร์: **[http://localhost:5173](http://localhost:5173)**
 
-## Expanding the ESLint configuration
+---
 
-If you are developing a production application, we recommend using TypeScript with type-aware lint rules enabled. Check out the [TS template](https://github.com/vitejs/vite/tree/main/packages/create-vite/template-react-ts) for information on how to integrate TypeScript and [`typescript-eslint`](https://typescript-eslint.io) in your project.
+### 2. 🐍 วิธีรันระบบหลังบ้าน (Backend - FastAPI)
+เปิดหน้าต่าง Terminal หรือ Command Prompt ตัวที่ 2:
+```bash
+# 1. ย้ายเข้าไปที่โฟลเดอร์หลังบ้าน
+cd c:\year3-2569\sofwaredev\project\backend
+
+# 2. รันเซิร์ฟเวอร์หลังบ้าน
+python -m uvicorn app.main:app --reload
+```
+* API Docs สำหรับทดสอบ API: **[http://127.0.0.1:8000/docs](http://127.0.0.1:8000/docs)**
+
+---
+
+## ⚙️ การตั้งค่าระบบ (Configuration)
+การตั้งค่าเชื่อมต่อต่างๆ จะอยู่ในไฟล์ `backend/.env` (ไฟล์นี้เป็นข้อมูลความลับ ไม่ได้นำขึ้น GitHub ให้จำลองหรือปรับแต่งในเครื่องของคุณเอง):
+* **DATABASE_URL**: ลิงก์เชื่อมโยงไปยังฐานข้อมูล PostgreSQL (`dssi_borrow`)
+* **GOOGLE_CLIENT_ID**: คีย์สำหรับล็อกอินผ่าน Google Sign-In จริง
+* **ADMIN_EMAILS**: ลิสต์อีเมล Google ที่ได้รับสิทธิ์ให้เป็น Admin (คั่นด้วยเครื่องหมายจุลภาค `,`)
