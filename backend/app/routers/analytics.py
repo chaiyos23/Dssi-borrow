@@ -1,3 +1,7 @@
+# Module 4 (เสริม): 2 endpoints สำหรับหน้า Dashboard สรุปผล
+# GET /overview - สรุปสถิติอุปกรณ์ (ทั้งหมด/ว่าง/ถูกยืม/ชำรุด) กรองตามห้องได้
+# GET /rooms - รายชื่อห้องทั้งหมด ใช้เป็น dropdown filter
+
 from fastapi import APIRouter, Depends, Query
 from sqlalchemy.orm import Session
 from typing import Optional
@@ -17,10 +21,10 @@ def get_overview_stats(
     # Query assets
     query = db.query(Asset)
     if room_id is not None:
-        query = query.filter(Asset.room_id == room_id)
-        
-    assets = query.all()
-    
+        query = query.filter(Asset.room_id == room_id)   # กรองเฉพาะห้องที่เลือก ถ้ามีส่งมา
+
+    assets = query.all()   # ดึงมาทั้งหมดแล้วนับในโค้ด Python แทนการ COUNT ใน SQL (ง่ายกว่าเพราะข้อมูลไม่เยอะ)
+
     total_assets = len(assets)
     available_assets = sum(1 for a in assets if a.status == "ว่าง")
     borrowed_assets = sum(1 for a in assets if a.status == "ถูกยืม")
@@ -37,4 +41,5 @@ def get_overview_stats(
 def get_rooms(db: Session = Depends(get_db), admin: dict = Depends(get_current_admin)):
     """Helper endpoint to list rooms for filtering dropdowns in Admin Panel."""
     rooms = db.query(Room).all()
+    # ไม่มี response_model ประกาศไว้ -> FastAPI ส่ง dict list ตรงๆ (ไม่ผ่าน Pydantic schema)
     return [{"room_id": r.room_id, "room_name": r.room_name} for r in rooms]

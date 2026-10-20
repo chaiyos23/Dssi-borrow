@@ -1,3 +1,7 @@
+# Module 1 (Authentication): 2 endpoints
+# POST /auth/google-login - ล็อกอินด้วย Google OAuth, สร้างบัญชีใหม่หรืออัปเดตบัญชีเดิม, คืน JWT token
+# GET /auth/me - ดูข้อมูลผู้ใช้ที่ล็อกอินอยู่ปัจจุบัน
+
 from fastapi import APIRouter, Depends, HTTPException, status
 from sqlalchemy.orm import Session
 from datetime import datetime
@@ -9,8 +13,9 @@ from app.config import settings
 
 router = APIRouter(prefix="/auth", tags=["Authentication"])
 
-@router.post("/google-login", response_model=Token)
+@router.post("/google-login", response_model=Token)   # Token คือ Schema ขาออก
 def google_login(payload: GoogleLoginRequest, db: Session = Depends(get_db)):
+    # payload คือ Schema ขาเข้า (GoogleLoginRequest) ถูก Pydantic ตรวจชนิดข้อมูลมาแล้วก่อนถึงตรงนี้
     # 1. Verify Google token (or mock)
     try:
         user_info = verify_google_token(payload.token)
@@ -40,9 +45,10 @@ def google_login(payload: GoogleLoginRequest, db: Session = Depends(get_db)):
     current_time = datetime.utcnow()
     
     if not user:
+        # เส้นทาง CREATE: ยังไม่เคยมีบัญชีนี้ -> สร้างแถวใหม่
         # Determine role: students are 'student', others can be configured
         role = user_info.get("role", "student")
-        
+
         user = User(
             user_id=user_id,
             email=email,
@@ -57,12 +63,16 @@ def google_login(payload: GoogleLoginRequest, db: Session = Depends(get_db)):
         db.commit()
         db.refresh(user)
     else:
+        # เส้นทาง UPDATE: มีบัญชีอยู่แล้ว -> แก้ไขแถวเดิม ไม่สร้างใหม่
         # Update last login time
         user.last_login = current_time
         # Sync profile image and names if they changed
         user.first_name = user_info.get("given_name") or user.first_name
         user.last_name = user_info.get("family_name") or user.last_name
         user.profile_image = user_info.get("picture") or user.profile_image
+        # Re-sync role every login, since ADMIN_EMAILS may have changed since this
+        # user's first login (otherwise a newly-granted admin stays "student" forever)
+        user.role = user_info.get("role", user.role)
         db.commit()
 
     # 4. Generate JWT Access Token
@@ -82,8 +92,9 @@ def google_login(payload: GoogleLoginRequest, db: Session = Depends(get_db)):
         name=f"{user.first_name} {user.last_name}"
     )
 
-@router.get("/me", response_model=UserResponse)
+@router.get("/me", response_model=UserResponse)  # ไม่มี Schema ขาเข้า เพราะ GET ไม่มี body
 def get_me(current_user: dict = Depends(get_current_user), db: Session = Depends(get_db)):
+    # current_user["sub"] คือ user_id ที่ถอดรหัสมาจาก JWT token ที่แนบมากับ request
     user = db.query(User).filter(User.user_id == current_user["sub"]).first()
     if not user:
         raise HTTPException(

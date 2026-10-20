@@ -1,3 +1,8 @@
+# ไฟล์นี้นิยามโครงสร้างตารางทั้ง 9 ตาราง (User, Room, Category, Brand, Asset,
+# Transaction, DamagedReport, MemberBorrowed, NotificationLog) ด้วย SQLAlchemy ORM
+# ทุกคลาสต้องตรงกับตารางจริงใน PostgreSQL เป๊ะๆ และใช้คุยกับฐานข้อมูลโดยตรง
+# (db.query(), db.add(), db.commit()) ต่างจาก schemas.py ที่ใช้คุยกับ frontend
+
 from sqlalchemy import Column, Integer, String, Text, ForeignKey, DateTime, Float
 from sqlalchemy.orm import relationship
 from datetime import datetime
@@ -79,17 +84,6 @@ class Transaction(Base):
     # Relationships
     user = relationship("User", back_populates="transactions")
     asset = relationship("Asset", back_populates="transactions")
-    notification_logs = relationship("NotificationLog", back_populates="transaction")
-
-class NotificationLog(Base):
-    __tablename__ = "notification_logs"
-
-    log_id = Column(Integer, primary_key=True, index=True, autoincrement=True)
-    transaction_id = Column(Integer, ForeignKey("transactions.transaction_id"), nullable=False)
-    sent_at = Column(DateTime, default=datetime.utcnow)
-
-    # Relationships
-    transaction = relationship("Transaction", back_populates="notification_logs")
 
 class DamagedReport(Base):
     __tablename__ = "damaged_reports"
@@ -117,3 +111,13 @@ class MemberBorrowed(Base):
     # Relationships
     asset = relationship("Asset", back_populates="borrowed_items")
     user = relationship("User", back_populates="borrowed_items")
+
+class NotificationLog(Base):
+    __tablename__ = "notification_logs"
+
+    log_id = Column(Integer, primary_key=True, index=True, autoincrement=True)
+    transaction_id = Column(Integer, ForeignKey("transactions.transaction_id"), nullable=False)
+    sent_at = Column(DateTime, nullable=True)
+
+    # Relationships
+    transaction = relationship("Transaction")

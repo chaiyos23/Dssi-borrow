@@ -1,3 +1,6 @@
+// กำหนด routes ทั้งหมดของเว็บ (/, /current, /history, /overdue, /student, /login)
+// + ตั้งธีมสี MUI ทั้งแอป + ครอบด้วย GoogleOAuthProvider สำหรับปุ่มล็อกอิน Google
+
 import React from 'react';
 import { BrowserRouter as Router, Routes, Route, Navigate } from 'react-router-dom';
 import { ThemeProvider, createTheme, CssBaseline } from '@mui/material';
@@ -13,8 +16,7 @@ import Login from './pages/Login';
 import Overview from './pages/Overview';
 import CurrentTransactions from './pages/CurrentTransactions';
 import TransactionHistory from './pages/TransactionHistory';
-import OverdueTracker from './pages/OverdueTracker';
-import NotificationHistory from './pages/NotificationHistory';
+import OverdueNotifications from './pages/OverdueNotifications';
 import StudentWelcome from './pages/StudentWelcome';
 
 // Premium MUI Theme
@@ -116,22 +118,11 @@ function App() {
             element={
               <ProtectedRoute requiredRole="admin">
                 <Layout>
-                  <OverdueTracker />
+                  <OverdueNotifications />
                 </Layout>
               </ProtectedRoute>
             }
           />
-          <Route
-            path="/notifications-log"
-            element={
-              <ProtectedRoute requiredRole="admin">
-                <Layout>
-                  <NotificationHistory />
-                </Layout>
-              </ProtectedRoute>
-            }
-          />
-
           <Route
             path="/student"
             element={

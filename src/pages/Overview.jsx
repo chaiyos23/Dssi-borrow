@@ -13,7 +13,6 @@ import {
   CircularProgress,
   Alert,
   Paper,
-  Divider,
   Tooltip,
   Avatar
 } from '@mui/material';
@@ -25,6 +24,7 @@ import {
   MeetingRoom as RoomIcon
 } from '@mui/icons-material';
 import { API_BASE_URL } from '../config';
+import PageHeader from '../components/PageHeader';
 
 const Overview = () => {
   const [stats, setStats] = useState(null);
@@ -53,7 +53,7 @@ const Overview = () => {
       if (roomId) {
         url += `?room_id=${roomId}`;
       }
-      
+
       const response = await axios.get(url, {
         headers: { Authorization: `Bearer ${token}` }
       });
@@ -80,75 +80,93 @@ const Overview = () => {
 
   if (loading && !stats) {
     return (
-      <Box display="flex" justifyContent="center" alignItems="center" minHeight="50vh">
+      <Box sx={{ display: 'flex', justifyContent: 'center', alignItems: 'center', minHeight: '50vh' }}>
         <CircularProgress />
       </Box>
     );
   }
 
+  // Status colors follow the app's semantic palette: green = healthy/available,
+  // blue = active/in-use (neutral, not a problem), red = needs attention.
   const statCards = [
     {
       title: 'อุปกรณ์ทั้งหมด',
       value: stats?.total_assets ?? 0,
-      icon: <TotalIcon sx={{ fontSize: 32 }} />,
-      color: '#1a73e8',
-      bg: 'linear-gradient(135deg, #e8f0fe 0%, #d2e3fc 100%)'
+      icon: <TotalIcon sx={{ fontSize: 26 }} />,
+      color: 'text.primary',
+      iconBg: 'action.selected'
     },
     {
       title: 'ว่างพร้อมใช้งาน',
       value: stats?.available_assets ?? 0,
-      icon: <AvailableIcon sx={{ fontSize: 32 }} />,
-      color: '#137333',
-      bg: 'linear-gradient(135deg, #e6f4ea 0%, #ceead6 100%)'
+      icon: <AvailableIcon sx={{ fontSize: 26 }} />,
+      color: 'success.main',
+      iconBg: 'success.light'
     },
     {
       title: 'กำลังถูกยืม',
       value: stats?.borrowed_assets ?? 0,
-      icon: <BorrowedIcon sx={{ fontSize: 32 }} />,
-      color: '#b06000',
-      bg: 'linear-gradient(135deg, #fef7e0 0%, #feebc8 100%)'
+      icon: <BorrowedIcon sx={{ fontSize: 26 }} />,
+      color: 'primary.main',
+      iconBg: 'primary.light'
     },
     {
       title: 'ชำรุด/ส่งซ่อม',
       value: stats?.damaged_assets ?? 0,
-      icon: <DamagedIcon sx={{ fontSize: 32 }} />,
-      color: '#c5221f',
-      bg: 'linear-gradient(135deg, #fce8e6 0%, #fad2cf 100%)'
+      icon: <DamagedIcon sx={{ fontSize: 26 }} />,
+      color: 'error.main',
+      iconBg: 'error.light'
     }
   ];
 
-  // Helper calculation for custom ratio display
+  // backend (analytics.py) ส่งมาแค่ "จำนวนนับ" เท่านั้น (total_assets, available_assets, ...)
+  // ไม่มีเปอร์เซ็นต์ติดมาด้วยเลย -> frontend ต้องคำนวณ % เอง 3 บรรทัดนี้
+
+  // || 1 (ไม่ใช่ || 0) กันหารด้วยศูนย์ ถ้า total_assets เป็น 0 จริง (ไม่มีอุปกรณ์เลยในระบบ)
+  // เพราะ x/0 ใน JavaScript ได้ Infinity หรือ NaN ทำให้แถบกราฟพัง
   const total = stats?.total_assets || 1;
+
+  // สูตรเปอร์เซ็นต์พื้นฐาน: (จำนวนของสถานะนี้ / จำนวนทั้งหมด) * 100
+  // stats?.available_assets || 0 กันกรณี stats ยังเป็น null ตอนหน้ายังโหลดไม่เสร็จ
+  // Math.round() ปัดเศษให้เป็นจำนวนเต็ม กันทศนิยมแปลกๆ เช่น 33.333...%
   const availablePct = Math.round(((stats?.available_assets || 0) / total) * 100);
   const borrowedPct = Math.round(((stats?.borrowed_assets || 0) / total) * 100);
   const damagedPct = Math.round(((stats?.damaged_assets || 0) / total) * 100);
 
+  // เอา % ที่คำนวณได้มาเก็บรวมกับข้อมูลแสดงผล (สี, ป้ายชื่อ, คำอธิบาย)
+  // แต่ละ object ในนี้จะถูกเอาไปวาดเป็นแถบสีด้วย CSS width: `${pct}%` (ไม่ได้ใช้ library กราฟ)
+  const segments = [
+    { key: 'available', pct: availablePct, count: stats?.available_assets || 0, color: 'success.main', label: 'ว่างพร้อมใช้งาน', desc: 'อุปกรณ์ที่พร้อมจะทำการสแกนยืมออกได้ทันที' },
+    { key: 'borrowed', pct: borrowedPct, count: stats?.borrowed_assets || 0, color: 'primary.main', label: 'กำลังถูกยืม', desc: 'อุปกรณ์ที่อยู่ระหว่างการครอบครองของนักศึกษา' },
+    { key: 'damaged', pct: damagedPct, count: stats?.damaged_assets || 0, color: 'error.main', label: 'ชำรุด/ส่งซ่อม', desc: 'อุปกรณ์ที่พัง เสียหาย และอยู่ระหว่างงดให้บริการยืม' }
+  ];
+
   return (
     <Box sx={{ flexGrow: 1 }}>
-      {/* Filters Header */}
-      <Paper sx={{ p: 2, mb: 3, display: 'flex', justifyContent: 'space-between', alignItems: 'center', flexWrap: 'wrap', gap: 2, borderRadius: 2, boxShadow: '0 2px 8px rgba(0,0,0,0.05)' }}>
-        <Typography variant="h6" sx={{ fontWeight: 600, display: 'flex', alignItems: 'center', gap: 1 }}>
-          <RoomIcon color="primary" /> สถิติจำแนกตามสถานที่เก็บ
-        </Typography>
-        
-        <FormControl size="small" sx={{ minWidth: 200 }}>
-          <InputLabel id="room-filter-label">กรองตามห้องเก็บอุปกรณ์</InputLabel>
-          <Select
-            labelId="room-filter-label"
-            id="room-filter"
-            value={selectedRoom}
-            label="กรองตามห้องเก็บอุปกรณ์"
-            onChange={handleRoomChange}
-          >
-            <MenuItem value="">ห้องทั้งหมด</MenuItem>
-            {rooms.map((room) => (
-              <MenuItem key={room.room_id} value={room.room_id}>
-                {room.room_name}
-              </MenuItem>
-            ))}
-          </Select>
-        </FormControl>
-      </Paper>
+      <PageHeader
+        icon={<RoomIcon color="primary" />}
+        title="แดชบอร์ดสรุปผล"
+        subtitle="ภาพรวมสถานะอุปกรณ์ทั้งหมดในระบบ แยกดูตามห้องเก็บอุปกรณ์ได้"
+        action={
+          <FormControl size="small" sx={{ minWidth: 200 }}>
+            <InputLabel id="room-filter-label">กรองตามห้องเก็บอุปกรณ์</InputLabel>
+            <Select
+              labelId="room-filter-label"
+              id="room-filter"
+              value={selectedRoom}
+              label="กรองตามห้องเก็บอุปกรณ์"
+              onChange={handleRoomChange}
+            >
+              <MenuItem value="">ห้องทั้งหมด</MenuItem>
+              {rooms.map((room) => (
+                <MenuItem key={room.room_id} value={room.room_id}>
+                  {room.room_name}
+                </MenuItem>
+              ))}
+            </Select>
+          </FormControl>
+        }
+      />
 
       {error && (
         <Alert severity="error" sx={{ mb: 3, borderRadius: 2 }}>
@@ -156,26 +174,26 @@ const Overview = () => {
         </Alert>
       )}
 
-      {/* Stats Cards */}
-      <Grid container spacing={3} sx={{ mb: 4 }}>
+      {/* Stat tiles */}
+      <Grid container spacing={2.5} sx={{ mb: 3 }}>
         {statCards.map((card, idx) => (
-          <Grid item xs={12} sm={6} md={3} key={idx}>
-            <Card sx={{ background: card.bg, borderRadius: 3, boxShadow: '0 4px 15px rgba(0,0,0,0.04)', border: '1px solid rgba(255,255,255,0.3)', position: 'relative', overflow: 'hidden' }}>
-              <CardContent sx={{ p: 3 }}>
-                <Box display="flex" justifyContent="space-between" alignItems="center">
+          <Grid size={{ xs: 12, sm: 6, md: 3 }} key={idx}>
+            <Card sx={{ borderRadius: 3, boxShadow: '0 2px 10px rgba(0,0,0,0.04)', border: '1px solid', borderColor: 'divider', height: '100%' }}>
+              <CardContent sx={{ p: 2.5 }}>
+                <Box sx={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start' }}>
                   <Box>
-                    <Typography variant="body2" color="text.secondary" sx={{ fontWeight: 500, mb: 0.5 }}>
+                    <Typography variant="body2" color="text.secondary" sx={{ fontWeight: 500, mb: 0.75 }}>
                       {card.title}
                     </Typography>
                     {loading ? (
-                      <CircularProgress size={24} sx={{ color: card.color }} />
+                      <CircularProgress size={22} sx={{ color: card.color }} />
                     ) : (
-                      <Typography variant="h3" sx={{ fontWeight: 700, color: card.color }}>
-                        {card.value}
+                      <Typography variant="h4" sx={{ fontWeight: 700, color: card.color, lineHeight: 1.1 }}>
+                        {card.value.toLocaleString()}
                       </Typography>
                     )}
                   </Box>
-                  <Avatar sx={{ bgcolor: 'rgba(255,255,255,0.7)', color: card.color, width: 56, height: 56, boxShadow: '0 2px 8px rgba(0,0,0,0.05)' }}>
+                  <Avatar variant="rounded" sx={{ bgcolor: card.iconBg, color: card.color, width: 44, height: 44, borderRadius: 2.5 }}>
                     {card.icon}
                   </Avatar>
                 </Box>
@@ -185,66 +203,51 @@ const Overview = () => {
         ))}
       </Grid>
 
-      {/* Custom Visualization Area */}
-      <Paper sx={{ p: 4, borderRadius: 3, boxShadow: '0 4px 12px rgba(0,0,0,0.04)' }}>
-        <Typography variant="h6" sx={{ fontWeight: 600, mb: 3 }}>
-          📊 อัตราส่วนสถานะการครอบครองอุปกรณ์
+      {/* Composition meter */}
+      <Paper sx={{ p: { xs: 2.5, sm: 4 }, borderRadius: 3, boxShadow: '0 2px 10px rgba(0,0,0,0.04)' }}>
+        <Typography variant="h6" sx={{ fontWeight: 700, mb: 3 }}>
+          สัดส่วนสถานะการครอบครองอุปกรณ์
         </Typography>
-        
-        {/* Progress Ratio Bar */}
-        <Box sx={{ width: '100%', height: 28, bgcolor: '#e0e0e0', borderRadius: 14, overflow: 'hidden', display: 'flex', mb: 4 }}>
-          {stats?.available_assets > 0 && (
-            <Tooltip title={`ว่างพร้อมใช้งาน: ${availablePct}%`}>
-              <Box sx={{ width: `${availablePct}%`, bgcolor: '#4caf50', display: 'flex', alignItems: 'center', justifyContent: 'center', color: 'white', fontSize: 12, fontWeight: 'bold' }}>
-                {availablePct >= 10 ? `${availablePct}%` : ''}
+
+        <Box sx={{ width: '100%', height: 24, bgcolor: 'action.hover', borderRadius: 12, overflow: 'hidden', display: 'flex', gap: '2px', mb: 4 }}>
+          {segments.filter((s) => s.pct > 0).map((s) => (
+            <Tooltip key={s.key} title={`${s.label}: ${s.pct}% (${s.count} รายการ)`}>
+              <Box
+                sx={{
+                  width: `${s.pct}%`,
+                  bgcolor: s.color,
+                  display: 'flex',
+                  alignItems: 'center',
+                  justifyContent: 'center',
+                  color: 'common.white',
+                  fontSize: 11,
+                  fontWeight: 700,
+                  minWidth: s.pct > 0 ? 4 : 0,
+                  transition: 'width 0.3s'
+                }}
+              >
+                {s.pct >= 10 ? `${s.pct}%` : ''}
               </Box>
             </Tooltip>
-          )}
-          {stats?.borrowed_assets > 0 && (
-            <Tooltip title={`กำลังถูกยืม: ${borrowedPct}%`}>
-              <Box sx={{ width: `${borrowedPct}%`, bgcolor: '#ff9800', display: 'flex', alignItems: 'center', justifyContent: 'center', color: 'white', fontSize: 12, fontWeight: 'bold' }}>
-                {borrowedPct >= 10 ? `${borrowedPct}%` : ''}
-              </Box>
-            </Tooltip>
-          )}
-          {stats?.damaged_assets > 0 && (
-            <Tooltip title={`ชำรุด/ส่งซ่อม: ${damagedPct}%`}>
-              <Box sx={{ width: `${damagedPct}%`, bgcolor: '#f44336', display: 'flex', alignItems: 'center', justifyContent: 'center', color: 'white', fontSize: 12, fontWeight: 'bold' }}>
-                {damagedPct >= 10 ? `${damagedPct}%` : ''}
-              </Box>
-            </Tooltip>
-          )}
+          ))}
         </Box>
 
-        {/* Legend */}
         <Grid container spacing={2}>
-          <Grid item xs={12} sm={4}>
-            <Box display="flex" alignItems="center" gap={1.5}>
-              <Box sx={{ width: 16, height: 16, bgcolor: '#4caf50', borderRadius: 0.5 }} />
-              <Box>
-                <Typography variant="subtitle2" sx={{ fontWeight: 600 }}>ว่างพร้อมใช้งาน ({stats?.available_assets} รายการ)</Typography>
-                <Typography variant="caption" color="text.secondary">อุปกรณ์ที่พร้อมจะทำการสแกนยืมออกได้ทันที</Typography>
+          {segments.map((s) => (
+            <Grid size={{ xs: 12, sm: 4 }} key={s.key}>
+              <Box sx={{ display: 'flex', alignItems: 'flex-start', gap: 1.5 }}>
+                <Box sx={{ width: 12, height: 12, mt: 0.4, bgcolor: s.color, borderRadius: 0.5, flexShrink: 0 }} />
+                <Box>
+                  <Typography variant="subtitle2" sx={{ fontWeight: 700 }}>
+                    {s.label} ({s.count} รายการ)
+                  </Typography>
+                  <Typography variant="caption" color="text.secondary">
+                    {s.desc}
+                  </Typography>
+                </Box>
               </Box>
-            </Box>
-          </Grid>
-          <Grid item xs={12} sm={4}>
-            <Box display="flex" alignItems="center" gap={1.5}>
-              <Box sx={{ width: 16, height: 16, bgcolor: '#ff9800', borderRadius: 0.5 }} />
-              <Box>
-                <Typography variant="subtitle2" sx={{ fontWeight: 600 }}>กำลังถูกยืม ({stats?.borrowed_assets} รายการ)</Typography>
-                <Typography variant="caption" color="text.secondary">อุปกรณ์ที่อยู่ระหว่างการครอบครองของนักศึกษา</Typography>
-              </Box>
-            </Box>
-          </Grid>
-          <Grid item xs={12} sm={4}>
-            <Box display="flex" alignItems="center" gap={1.5}>
-              <Box sx={{ width: 16, height: 16, bgcolor: '#f44336', borderRadius: 0.5 }} />
-              <Box>
-                <Typography variant="subtitle2" sx={{ fontWeight: 600 }}>ชำรุด/ส่งซ่อม ({stats?.damaged_assets} รายการ)</Typography>
-                <Typography variant="caption" color="text.secondary">อุปกรณ์ที่พัง เสียหาย และอยู่ระหว่างงดให้บริการยืม</Typography>
-              </Box>
-            </Box>
-          </Grid>
+            </Grid>
+          ))}
         </Grid>
       </Paper>
     </Box>

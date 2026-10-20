@@ -1,3 +1,7 @@
+# ไฟล์นี้อ่านค่าลับ/ค่าตั้งค่าจากไฟล์ .env (DATABASE_URL, JWT_SECRET, ADMIN_EMAILS, SMTP ฯลฯ)
+# แล้วเก็บไว้ในคลาส Settings เดียว ให้ทุกไฟล์ import "settings" ไปใช้ได้สะดวก
+# โดยไม่ต้องรู้ว่าค่ามาจาก .env จริงๆ
+
 import os
 from dotenv import load_dotenv
 

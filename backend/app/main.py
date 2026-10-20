@@ -1,8 +1,13 @@
+# Entry point ของ backend: ไฟล์นี้ "ประกอบร่าง" ทุกอย่างเข้าด้วยกัน
+# สร้างตารางในฐานข้อมูล + รัน seed data, สร้าง FastAPI app, ติด CORS,
+# แล้วลงทะเบียน router ทั้ง 4 ตัว (auth, transactions, analytics, notifications)
+# รันด้วยคำสั่ง: uvicorn app.main:app
+
 from fastapi import FastAPI
 from fastapi.middleware.cors import CORSMiddleware
 from app.database import engine, Base, SessionLocal
 from app.seed import seed_database
-from app.routers import auth, transactions, notifications, analytics
+from app.routers import auth, transactions, analytics, notifications
 
 # Create database tables on startup
 Base.metadata.create_all(bind=engine)
@@ -25,7 +30,7 @@ origins = [
     "http://localhost:5173",
     "http://127.0.0.1:5173",
     "http://localhost:3000",
-    "*" # Fallback for wider environments
+    "*" # Fallback for wider environments 
 ]
 
 app.add_middleware(
@@ -39,8 +44,8 @@ app.add_middleware(
 # Include Routers
 app.include_router(auth.router, prefix="/api")
 app.include_router(transactions.router, prefix="/api")
-app.include_router(notifications.router, prefix="/api")
 app.include_router(analytics.router, prefix="/api")
+app.include_router(notifications.router, prefix="/api")
 
 @app.get("/")
 def read_root():

@@ -1,3 +1,8 @@
+# ไฟล์นี้เป็นด่านตรวจข้อมูลเข้า-ออกทุก endpoint ด้วย Pydantic (BaseModel)
+# "Schema ขาเข้า" ตรวจ Request Body ก่อนให้โค้ด backend รัน (เช่น ManualBorrowRequest)
+# "Schema ขาออก" กรองว่าส่งอะไรกลับไปหา frontend ได้บ้าง (เช่น TransactionResponse)
+# คนละเรื่องกับ models.py ที่นิยามตารางจริงในฐานข้อมูล
+
 from pydantic import BaseModel, EmailStr
 from datetime import datetime
 from typing import Optional, List
@@ -85,8 +90,44 @@ class TransactionResponse(BaseModel):
 
 class ReturnRequest(BaseModel):
     condition_status: str # ปกติ, ชำรุด
+    issue_description: Optional[str] = None # บังคับกรอกถ้า condition_status เป็น "ชำรุด"
 
-# Overdue and Notification Schemas
+class ManualBorrowRequest(BaseModel):
+    user_id: str
+    assets_id: str
+    return_deadline: datetime
+
+class UpdateDeadlineRequest(BaseModel):
+    return_deadline: datetime
+
+class UpdateConditionRequest(BaseModel):
+    condition_status: str # ปกติ, ชำรุด
+    issue_description: Optional[str] = None # บังคับกรอกถ้า condition_status เป็น "ชำรุด"
+
+class AvailableAssetSchema(BaseModel):
+    assets_id: str
+    assets_name: str
+
+    class Config:
+        from_attributes = True
+
+class StudentSearchResult(BaseModel):
+    user_id: str
+    first_name: Optional[str] = None
+    last_name: Optional[str] = None
+    email: str
+
+    class Config:
+        from_attributes = True
+
+# Overview Analytics
+class OverviewStats(BaseModel):
+    total_assets: int
+    available_assets: int
+    borrowed_assets: int
+    damaged_assets: int
+
+# Module 5: Overdue Notifications
 class OverdueItem(BaseModel):
     transaction_id: int
     user_id: str
@@ -98,6 +139,12 @@ class OverdueItem(BaseModel):
     return_deadline: datetime
     days_overdue: int
 
+    class Config:
+        from_attributes = True
+
+class WarnRequest(BaseModel):
+    transaction_id: int
+
 class NotificationLogResponse(BaseModel):
     log_id: int
     transaction_id: int
@@ -105,17 +152,7 @@ class NotificationLogResponse(BaseModel):
     student_name: str
     assets_id: str
     assets_name: str
-    sent_at: datetime
+    sent_at: Optional[datetime] = None
 
     class Config:
         from_attributes = True
-
-class WarnRequest(BaseModel):
-    transaction_id: int
-
-# Overview Analytics
-class OverviewStats(BaseModel):
-    total_assets: int
-    available_assets: int
-    borrowed_assets: int
-    damaged_assets: int

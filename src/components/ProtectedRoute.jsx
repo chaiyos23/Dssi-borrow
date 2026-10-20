@@ -1,3 +1,6 @@
+// ตัวกันไม่ให้เข้าหน้าที่ไม่มีสิทธิ์: เช็ค token/role ใน localStorage ก่อนปล่อยให้เห็นหน้า
+// ถ้าไม่ได้ล็อกอิน หรือ role ไม่ตรงที่กำหนด จะเด้งกลับไปหน้า /login ทันที
+
 import React from 'react';
 import { Navigate } from 'react-router-dom';
 
